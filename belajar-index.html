@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Tracker Belajar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.js"></script>
+<script>tailwind.config={theme:{extend:{fontFamily:{serif:['DM Serif Display','serif'],sans:['DM Sans','sans-serif']}}}}</script>
+<style>
+html,body{height:100%;overflow:hidden;background:#f0fdf4;font-family:'DM Sans',sans-serif}
+#app{max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.page{position:absolute;inset:0;overflow-y:auto;padding:16px 16px 88px;display:none}
+.page.active{display:block}
+::-webkit-scrollbar{width:2px}::-webkit-scrollbar-thumb{background:#bbf7d0;border-radius:99px}
+input:focus,select:focus,textarea:focus{outline:none}
+@keyframes spin{to{transform:rotate(360deg)}}.spinner{animation:spin .7s linear infinite}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- HEADER -->
+  <div class="flex-shrink-0 bg-emerald-700 px-5 py-3.5 relative overflow-hidden">
+    <div class="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10"></div>
+    <div class="flex items-center justify-between relative">
+      <div>
+        <div class="font-serif text-white text-lg">Tracker Belajar</div>
+        <div class="text-emerald-300 text-xs mt-0.5">Python · GIS · Data — 16 Minggu</div>
+      </div>
+      <div id="streak-badge" class="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-xl">
+        <i data-lucide="flame" class="w-4 h-4 text-orange-400"></i>
+        <span id="streak-val" class="text-white text-sm font-bold">0</span>
+        <span class="text-emerald-300 text-xs">hari</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="pages" class="flex-1 overflow-hidden relative">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-home">
+      <!-- Stats -->
+      <div class="grid grid-cols-3 gap-2 mb-5">
+        <div class="bg-white rounded-xl p-3 text-center border border-emerald-100">
+          <div class="text-emerald-600 flex justify-center mb-1"><i data-lucide="clock" class="w-4 h-4"></i></div>
+          <div id="stat-jam" class="font-bold text-stone-800 text-base">0</div>
+          <div class="text-stone-400 text-xs">Total Jam</div>
+        </div>
+        <div class="bg-white rounded-xl p-3 text-center border border-emerald-100">
+          <div class="text-emerald-600 flex justify-center mb-1"><i data-lucide="book-open" class="w-4 h-4"></i></div>
+          <div id="stat-sesi" class="font-bold text-stone-800 text-base">0</div>
+          <div class="text-stone-400 text-xs">Sesi</div>
+        </div>
+        <div class="bg-white rounded-xl p-3 text-center border border-emerald-100">
+          <div class="text-emerald-600 flex justify-center mb-1"><i data-lucide="layers" class="w-4 h-4"></i></div>
+          <div id="stat-minggu" class="font-bold text-stone-800 text-base">0/16</div>
+          <div class="text-stone-400 text-xs">Minggu</div>
+        </div>
+      </div>
+
+      <!-- Overall Progress -->
+      <div class="bg-white rounded-2xl border border-emerald-100 p-4 mb-4">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm font-semibold text-stone-700">Progress Keseluruhan</span>
+          <span id="pct-val" class="text-sm font-bold text-emerald-600">0%</span>
+        </div>
+        <div class="h-3 bg-emerald-100 rounded-full overflow-hidden mb-3">
+          <div id="pct-bar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all" style="width:0%"></div>
+        </div>
+        <!-- Mini week grid -->
+        <div id="week-grid" class="grid grid-cols-8 gap-1.5"></div>
+      </div>
+
+      <!-- Recent Sesi -->
+      <div class="flex items-center justify-between mb-3">
+        <div class="font-serif text-stone-800">Sesi Terbaru</div>
+        <span id="sesi-count" class="text-xs text-stone-400"></span>
+      </div>
+      <div id="sesi-list"><div class="flex flex-col items-center py-8 text-stone-300"><div class="w-6 h-6 border-2 border-stone-200 border-t-emerald-400 rounded-full spinner mb-2"></div><span class="text-sm">Memuat...</span></div></div>
+    </div>
+
+    <!-- CATAT SESI -->
+    <div class="page" id="page-add">
+      <div class="font-serif text-stone-800 text-xl mb-5">Catat Sesi Belajar</div>
+      <div id="add-toast" class="hidden rounded-xl px-4 py-3 mb-4 text-sm font-semibold text-white text-center"></div>
+
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-semibold text-stone-400 tracking-widest block mb-1.5">TANGGAL</label>
+            <input type="date" id="inp-tanggal" class="w-full bg-white border-2 border-stone-200 focus:border-emerald-400 rounded-xl px-4 py-3 text-sm text-stone-700 transition-colors"/>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-stone-400 tracking-widest block mb-1.5">SLOT</label>
+            <select id="inp-slot" class="w-full bg-white border-2 border-stone-200 focus:border-emerald-400 rounded-xl px-4 py-3 text-sm text-stone-700 transition-colors">
+              <option value="pagi">Pagi 06:00–07:00</option>
+              <option value="siang">Siang 12:00–13:00</option>
+              <option value="malam">Malam</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-semibold text-stone-400 tracking-widest block mb-1.5">MINGGU KE-</label>
+            <select id="inp-minggu" class="w-full bg-white border-2 border-stone-200 focus:border-emerald-400 rounded-xl px-4 py-3 text-sm text-stone-700 transition-colors">
+              ${Array.from({length:16},(_,i)=>`<option value="${i+1}">Minggu ${i+1}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-stone-400 tracking-widest block mb-1.5">DURASI (MENIT)</label>
+            <input type="number" id="inp-durasi" placeholder="60" value="60" class="w-full bg-white border-2 border-stone-200 focus:border-emerald-400 rounded-xl px-4 py-3 text-sm text-stone-700 transition-colors"/>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-stone-400 tracking-widest block mb-1.5">TOPIK YANG DIPELAJARI</label>
+          <input type="text" id="inp-topik" placeholder="Misal: Pandas groupby, merge, pivot table..." class="w-full bg-white border-2 border-stone-200 focus:border-emerald-400 rounded-xl px-4 py-3 text-sm text-stone-700 transition-colors"/>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-stone-400 tracking-widest block mb-1.5">CATATAN</label>
+          <textarea id="inp-catatan" rows="2" placeholder="Kesulitan, insight, next step..." class="w-full bg-white border-2 border-stone-200 focus:border-emerald-400 rounded-xl px-4 py-3 text-sm text-stone-700 resize-none transition-colors"></textarea>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-stone-400 tracking-widest block mb-2">MOOD BELAJAR</label>
+          <div class="flex gap-2">
+            ${[['semangat','zap','Semangat'],['oke','thumbs-up','Oke'],['lelah','battery-low','Lelah']].map(([v,ic,lb])=>`
+            <button onclick="setMood('${v}')" id="mood-${v}"
+              class="mood-btn flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 border-stone-200 bg-white transition-all text-stone-400 text-xs font-medium">
+              <i data-lucide="${ic}" class="w-4 h-4"></i>${lb}
+            </button>`).join('')}
+          </div>
+        </div>
+      </div>
+      <button onclick="simpan()" class="mt-5 w-full flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white rounded-xl py-4 text-base font-semibold shadow-lg shadow-emerald-600/20 transition-all">
+        <i data-lucide="save" class="w-5 h-5"></i> Simpan Sesi
+      </button>
+    </div>
+
+    <!-- KURIKULUM -->
+    <div class="page" id="page-kurikulum">
+      <div class="font-serif text-stone-800 text-xl mb-2">Kurikulum 16 Minggu</div>
+      <div class="text-stone-400 text-xs mb-5">Python · GIS · Data Freelance</div>
+      <div id="kurikulum-list"></div>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="flex-shrink-0 bg-white/95 backdrop-blur border-t border-stone-100 flex" style="padding-bottom:env(safe-area-inset-bottom,0px)">
+    <button onclick="showTab('home')" class="tab-btn flex-1 flex flex-col items-center gap-1 py-3">
+      <i data-lucide="layout-dashboard" class="w-5 h-5 text-stone-400 tab-icon"></i>
+      <span class="text-[10px] font-semibold text-stone-400 tab-label">Dashboard</span>
+    </button>
+    <button onclick="showTab('add')" class="tab-btn flex-1 flex flex-col items-center gap-1 py-3">
+      <div class="w-9 h-9 -mt-6 rounded-full bg-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-600/30">
+        <i data-lucide="plus" class="w-5 h-5 text-white"></i>
+      </div>
+      <span class="text-[10px] font-semibold text-stone-400 tab-label">Catat</span>
+    </button>
+    <button onclick="showTab('kurikulum')" class="tab-btn flex-1 flex flex-col items-center gap-1 py-3">
+      <i data-lucide="book-open" class="w-5 h-5 text-stone-400 tab-icon"></i>
+      <span class="text-[10px] font-semibold text-stone-400 tab-label">Kurikulum</span>
+    </button>
+  </div>
+</div>
+<div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl font-semibold text-sm text-white z-50 opacity-0 pointer-events-none transition-opacity whitespace-nowrap shadow-lg"></div>
+
+<script>
+const API_URL = "ISI_URL_APPS_SCRIPT_BELAJAR";
+const API_KEY = "belajar-fauzan-itb-rahasia";
+
+let curTab='home', curMood='semangat', allSesi=[], kurikulum=[], stats={};
+const tod=()=>new Date().toISOString().split('T')[0];
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const SLOT_LABEL={'pagi':'Pagi 06:00','siang':'Siang 12:00','malam':'Malam'};
+const MOOD_COLOR={'semangat':'#059669','oke':'#3b82f6','lelah':'#f59e0b'};
+const MS=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+
+async function apiCall(p){
+  const qs=new URLSearchParams({...p,key:API_KEY}).toString();
+  const res=await fetch(API_URL+'?'+qs,{redirect:'follow'});
+  const d=await res.json();if(d&&d.error)throw new Error(d.error);return d;
+}
+function ri(){setTimeout(()=>lucide.createIcons(),10);}
+function showToast(msg,ok=true){const el=document.getElementById('toast');el.textContent=msg;el.style.background=ok?'#047857':'#be123c';el.style.opacity='1';setTimeout(()=>el.style.opacity='0',2200);}
+function showAddToast(msg,ok=true){const el=document.getElementById('add-toast');el.textContent=msg;el.style.background=ok?'#047857':'#be123c';el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),2500);}
+
+function setMood(m){
+  curMood=m;
+  document.querySelectorAll('.mood-btn').forEach(b=>{
+    const v=b.id.replace('mood-','');const sel=v===m;
+    b.className=`mood-btn flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 transition-all text-xs font-medium ${sel?'border-emerald-500 bg-emerald-50 text-emerald-700':'border-stone-200 bg-white text-stone-400'}`;
+  });
+}
+
+function showTab(tab){
+  curTab=tab;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    const tabs=['home','add','kurikulum'],isActive=tabs[i]===tab;
+    const icon=b.querySelector('.tab-icon'),label=b.querySelector('.tab-label');
+    if(icon){icon.classList.toggle('text-emerald-600',isActive);icon.classList.toggle('text-stone-400',!isActive);}
+    if(label){label.classList.toggle('text-emerald-600',isActive);label.classList.toggle('text-stone-400',!isActive);}
+  });
+  if(tab==='kurikulum')renderKurikulum();
+}
+
+async function loadAll(){
+  try{
+    [allSesi,kurikulum,stats]=await Promise.all([
+      apiCall({action:'get_sesi'}),
+      apiCall({action:'get_kurikulum'}),
+      apiCall({action:'get_stats'})
+    ]);
+  }catch(e){console.error(e);}
+  renderHome();
+}
+
+function renderHome(){
+  // Stats
+  document.getElementById('stat-jam').textContent=(stats.total_jam||0)+'j';
+  document.getElementById('stat-sesi').textContent=stats.total_sesi||0;
+  document.getElementById('streak-val').textContent=stats.streak_hari||0;
+  const mingguAktif=(stats.minggu_aktif||[]).length;
+  document.getElementById('stat-minggu').textContent=mingguAktif+'/16';
+
+  // Progress
+  const pct=Math.round(mingguAktif/16*100);
+  document.getElementById('pct-val').textContent=pct+'%';
+  document.getElementById('pct-bar').style.width=pct+'%';
+
+  // Week grid
+  const byMinggu=stats.by_minggu||{};
+  document.getElementById('week-grid').innerHTML=Array.from({length:16},(_,i)=>{
+    const w=i+1;const done=byMinggu[w]>0;
+    return`<div title="Minggu ${w}" class="aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all ${done?'bg-emerald-500 text-white':'bg-emerald-100 text-emerald-300'}">${w}</div>`;
+  }).join('');
+
+  // Sesi list
+  const list=document.getElementById('sesi-list');
+  document.getElementById('sesi-count').textContent=allSesi.length?allSesi.length+' sesi':'';
+  if(!allSesi.length){
+    list.innerHTML=`<div class="flex flex-col items-center py-10 text-stone-300"><i data-lucide="book-open" class="w-10 h-10 mb-3"></i><div class="text-stone-400 text-sm mb-1">Belum ada sesi belajar</div><div class="text-stone-300 text-xs">Yuk mulai hari ini!</div></div>`;
+    ri();return;
+  }
+  list.innerHTML=allSesi.slice(0,8).map(s=>{
+    const tgl=new Date(s.tanggal);
+    const mCol=MOOD_COLOR[s.mood]||'#a8a29e';
+    return`<div class="bg-white rounded-xl border border-emerald-100 px-4 py-3 mb-2">
+      <div class="flex items-start gap-3">
+        <div class="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-700 font-bold text-sm">W${s.minggu}</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-stone-800 leading-tight">${esc(s.topik_bahasan||'Sesi belajar')}</div>
+          <div class="flex items-center gap-2 mt-1 flex-wrap">
+            <span class="text-xs text-emerald-600 font-medium">${SLOT_LABEL[s.slot]||s.slot}</span>
+            <span class="text-xs text-stone-400">${s.durasi_menit}mnt</span>
+            <span class="text-xs text-stone-400">${tgl.getDate()} ${MS[tgl.getMonth()]}</span>
+            <span class="text-xs px-1.5 py-0.5 rounded-full font-medium text-white" style="background:${mCol}">${s.mood}</span>
+          </div>
+        </div>
+        <button onclick="hapus(${s.id})" class="text-stone-200 hover:text-rose-400 transition-colors flex-shrink-0">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>`;
+  }).join('');ri();
+}
+
+function renderKurikulum(){
+  const byMinggu=stats.by_minggu||{};
+  const list=document.getElementById('kurikulum-list');
+  if(!kurikulum.length){list.innerHTML='<div class="text-stone-400 text-sm text-center py-10">Memuat kurikulum...</div>';return;}
+  list.innerHTML=kurikulum.map(k=>{
+    const done=byMinggu[k.minggu]>0;
+    const menit=byMinggu[k.minggu]||0;
+    return`<div class="flex gap-3 mb-3">
+      <div class="flex flex-col items-center flex-shrink-0">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${done?'bg-emerald-500 text-white':'bg-stone-100 text-stone-400'}">${k.minggu}</div>
+        ${k.minggu<16?'<div class="w-0.5 flex-1 bg-stone-100 mt-1"></div>':''}
+      </div>
+      <div class="flex-1 bg-white rounded-xl border ${done?'border-emerald-200':'border-stone-100'} px-4 py-3 mb-1">
+        <div class="flex items-center justify-between mb-1">
+          <div class="text-sm font-semibold ${done?'text-emerald-700':'text-stone-700'}">${esc(k.judul)}</div>
+          ${done?`<span class="text-xs text-emerald-600 font-medium">${Math.round(menit/60*10)/10}j</span>`:''}
+        </div>
+        <div class="text-xs text-stone-400 leading-relaxed">${esc(k.topik)}</div>
+        ${done?'<div class="flex items-center gap-1 mt-2 text-xs text-emerald-600"><i data-lucide="check-circle" class="w-3 h-3"></i> Sudah dipelajari</div>':''}
+      </div>
+    </div>`;
+  }).join('');ri();
+}
+
+async function simpan(){
+  const topik=document.getElementById('inp-topik').value.trim();
+  if(!topik){showAddToast('Masukkan topik yang dipelajari',false);return;}
+  try{
+    await apiCall({
+      action:'add_sesi',
+      tanggal:document.getElementById('inp-tanggal').value||tod(),
+      minggu:document.getElementById('inp-minggu').value,
+      slot:document.getElementById('inp-slot').value,
+      durasi_menit:document.getElementById('inp-durasi').value||60,
+      topik_bahasan:topik,
+      catatan:document.getElementById('inp-catatan').value,
+      mood:curMood
+    });
+    showAddToast('Sesi tersimpan! Semangat terus!');
+    ['inp-topik','inp-catatan'].forEach(id=>document.getElementById(id).value='');
+    await loadAll();
+  }catch(e){showAddToast('Gagal: '+e.message,false);}
+}
+
+async function hapus(id){
+  if(!confirm('Hapus sesi ini?'))return;
+  await apiCall({action:'delete_sesi',id});
+  showToast('Sesi dihapus');
+  await loadAll();
+}
+
+async function init(){
+  document.getElementById('inp-tanggal').value=tod();
+  setMood('semangat');lucide.createIcons();
+  await loadAll();
+}
+init();
+</script>
+</body>
+</html>
